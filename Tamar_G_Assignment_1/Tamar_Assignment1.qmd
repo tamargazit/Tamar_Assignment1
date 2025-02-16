@@ -1,0 +1,304 @@
+---
+title: "Tamar_Assignment1"
+format: html
+editor: visual
+---
+
+## Question 1
+
+```{r}
+# Load necessary library packages
+library(tidyverse)
+library(dplyr)
+
+# Import the dataset
+avengers <- read_csv("avengers.csv")
+
+# View the dataset to ensure it loaded correctly
+view(avengers)
+
+# Check for missing values per variable
+missing_values <- colSums(is.na(avengers))
+
+# Display missing values
+missing_values
+
+# Check summary statistics for numerical variables
+summary(avengers)
+
+# Check for unique values in categorical variables
+unique(avengers$superpower)
+unique(avengers$north_south)
+unique(avengers$died)
+```
+
+## Question 2:
+
+Subset the data to include only complete cases:
+
+```{r}
+# Remove rows with missing values
+avengers_clean <- avengers %>% drop_na()
+
+# Verify no missing values remain
+colSums(is.na(avengers_clean))
+
+# Create a new variable: Combat Effectiveness (sum of agility, speed, strength, and willpower)
+avengers_clean <- avengers_clean %>%
+  mutate(CombatEffectiveness = agility + speed + strength + willpower)
+
+# Check the first few rows to confirm the new variable
+head(avengers_clean)
+
+# Summary statistics for Combat Effectiveness
+combat_stats <- avengers_clean %>%
+  summarise(
+    Mean_Combat = mean(CombatEffectiveness, na.rm = TRUE),
+    SD_Combat = sd(CombatEffectiveness, na.rm = TRUE),
+    Min_Combat = min(CombatEffectiveness, na.rm = TRUE),
+    Max_Combat = max(CombatEffectiveness, na.rm = TRUE)
+  )
+
+# Display Combat Effectiveness statistics
+print(combat_stats)
+```
+
+## Question 3:
+
+Subset the data to include only Avengers who did not have a superpower (superpower == "no") and died in battle (died == "yes"):
+
+```{r}
+# Subset data for Avengers who died and had no superpowers
+avengers_no_superpower_dead <- avengers_clean %>%
+  filter(superpower == "no", died == "yes")
+
+# Check the first few rows
+head(avengers_no_superpower_dead)
+
+# Save as CSV
+write_csv(avengers_no_superpower_dead, "avengers_no_superpower_dead.csv")
+
+# Save as SPSS
+library(haven) # package to export to SPSS
+write_sav(avengers_no_superpower_dead, "avengers_no_superpower_dead.sav")
+
+```
+
+Summarize key variables (CombatEffectiveness, kills, and injuries) by calculating mean, standard deviation (SD), and range:
+
+Overall summary statistics
+
+```{r}
+# Load necessary package
+library(dplyr)
+
+# Overall summary for all Avengers without superpowers who died
+overall_summary <- avengers_no_superpower_dead %>%
+  summarise(
+    Mean_Combat = mean(CombatEffectiveness, na.rm = TRUE),
+    SD_Combat = sd(CombatEffectiveness, na.rm = TRUE),
+    Min_Combat = min(CombatEffectiveness, na.rm = TRUE),
+    Max_Combat = max(CombatEffectiveness, na.rm = TRUE),
+    
+    Mean_Kills = mean(kills, na.rm = TRUE),
+    SD_Kills = sd(kills, na.rm = TRUE),
+    Min_Kills = min(kills, na.rm = TRUE),
+    Max_Kills = max(kills, na.rm = TRUE),
+    
+    Mean_Injuries = mean(injuries, na.rm = TRUE),
+    SD_Injuries = sd(injuries, na.rm = TRUE),
+    Min_Injuries = min(injuries, na.rm = TRUE),
+    Max_Injuries = max(injuries, na.rm = TRUE)
+  )
+
+# Display overall summary statistics
+print(overall_summary)
+```
+
+Summary statistics by battlefield location
+
+```{r}
+# Calculate summary statistics by battlefield location (North vs. South)
+battlefield_summary <- avengers_no_superpower_dead %>%
+  group_by(north_south) %>%
+  summarise(
+    Mean_Combat = mean(CombatEffectiveness, na.rm = TRUE),
+    SD_Combat = sd(CombatEffectiveness, na.rm = TRUE),
+    Min_Combat = min(CombatEffectiveness, na.rm = TRUE),
+    Max_Combat = max(CombatEffectiveness, na.rm = TRUE),
+    
+    Mean_Kills = mean(kills, na.rm = TRUE),
+    SD_Kills = sd(kills, na.rm = TRUE),
+    Min_Kills = min(kills, na.rm = TRUE),
+    Max_Kills = max(kills, na.rm = TRUE),
+    
+    Mean_Injuries = mean(injuries, na.rm = TRUE),
+    SD_Injuries = sd(injuries, na.rm = TRUE),
+    Min_Injuries = min(injuries, na.rm = TRUE),
+    Max_Injuries = max(injuries, na.rm = TRUE)
+  )
+
+# Display battlefield-specific summary statistics
+print(battlefield_summary)
+```
+
+## Question 4:
+
+-   North had a slightly higher mean Combat Effectiveness (499.78 vs. 491.68). However the South battlefield had a wider spread (higher SD = 189.53 vs. 174.07), meaning individual Avengers had more variability in combat effectiveness.
+
+-   If higher mean Combat Effectiveness is the main indicator, North was slightly more effective. However, the South battlefield had more extreme performers (both weak and strong Avengers).
+
+-   The North battlefield had slightly more injuries (4.60 vs. 4.43), but South had a wider range of injuries.
+
+## Question 5:
+
+-   Kills is the most erroneous variable because it has a very high standard deviation compared to the mean, it has extreme values (e.g., some with 0 kills, others with 79 kills), and it is highly skewed, meaning the mean does not represent most Avengers well.
+
+## Question 6:
+
+Justification 1: Use prior literature/conventions
+
+-   Cohen (1988) suggests that for psychological research, effect sizes of d = 0.2 (small), d = 0.5 (medium), and d = 0.8 (large) are recommended.
+
+-   Prior studies on cognitive differences between superpowered and non-superpowered individuals suggest a medium effect size (d = 0.5).
+
+Justification 2: A priori power analysis
+
+-   A power analysis with Type I error rate set at 0.05, power = 0.80, two-tailed test, and a medium effect size (Cohen's d) = 0.5, can help determine how many participants are needed to detect an effect of interest.
+
+-   This ensures that we have enough participants before conducting the study, avoiding underpowered results.
+
+Now, conduct a priori power analysis to determine sample size:
+
+```{r}
+# Load necessary package
+library(pwr)
+
+# Define parameters for power analysis
+effect_size <- 0.5  # Medium effect size
+alpha <- 0.05       # Significance level
+power <- 0.80       # 80% power
+
+# Compute required sample size for an independent samples t-test
+sample_size <- pwr.t.test(d = effect_size, power = power, sig.level = alpha, type = "two.sample")
+
+# Display required sample size per group
+print(sample_size)
+
+```
+
+Check if we have enough participants:
+
+```{r}
+# Count number of Avengers in each group
+superpower_counts <- table(avengers_clean$superpower)
+
+# Display counts
+print(superpower_counts)
+
+```
+
+Conduct independent samples t-test:
+
+```{r}
+# Conduct independent samples t-test on IQ by superpower status
+t_test_results <- t.test(iq ~ superpower, data = avengers_clean, var.equal = TRUE)
+
+# Display t-test results
+print(t_test_results)
+
+```
+
+## Question 7:
+
+I chose a Cohen's d = 0.5 (moderate effect). This suggests that Avengers with superpowers have an IQ score that is about 0.5 standard deviations higher than those without superpowers.
+
+A very large effect (d \> 0.8) would suggest an extreme difference, which may not be realistic. A very small effect (d \< 0.2) would be harder to detect without a large sample size. Choosing d = 0.5 balances realistic detectability and theoretical expectations.
+
+```{r}
+# Load necessary package
+library(pwr)
+
+# Define chosen effect size (adjust d as needed)
+effect_size <- 0.5  # Medium effect
+
+# Compute required sample size for an independent samples t-test
+sample_size <- pwr.t.test(d = effect_size, power = 0.80, sig.level = 0.05, type = "two.sample")
+
+# Display required sample size per group
+print(sample_size)
+
+```
+
+## Question 8:
+
+```{r}
+# Load the necessary package
+library(pwr)
+
+# Define power analysis parameters
+effect_size <- 0.5   # Medium effect size (Cohen's d)
+alpha <- 0.05        # Significance level (Type I error)
+power <- 0.80        # Desired power (1 - Type II error)
+
+# Compute the required sample size
+sample_size <- pwr.t.test(d = effect_size, 
+                          sig.level = alpha, 
+                          power = power, 
+                          type = "two.sample")
+
+# Display required sample size per group
+print(sample_size)
+
+```
+
+## Question 9:
+
+To confirm that there is truly no difference between the groups, an equivalence test or power analysis for detecting a null effect (d = 0) must be conducted.
+
+To test for no meaningful difference, we can define the smallest effect size of interest (SESOI) like d = 0.2. If d \< 0.2, we conclude no meaningful difference exists.
+
+```{r}
+# Load TOSTER package
+library(TOSTER)
+
+# Compute sample size required for equivalence testing
+power_equivalence <- power_t_TOST(n = NULL, 
+                                  delta = 0, 
+                                  sd = 1, 
+                                  eqb = c(-0.2, 0.2),  # Smallest effect size of interest
+                                  alpha = 0.05, 
+                                  power = 0.80, 
+                                  type = "two.sample")
+
+# Display result
+power_equivalence
+
+# Count number of Avengers in each group
+superpower_counts <- table(avengers_clean$superpower)
+
+# Display counts
+print(superpower_counts)
+```
+
+## Question 10:
+
+```{r}
+# Compute degrees of freedom
+n1 <- 780  # Non-superpowered group
+n2 <- 32   # Superpowered group
+df <- n1 + n2 - 2
+
+# Print degrees of freedom
+print(df)
+
+# Load the effectsize package
+library(effectsize)
+
+# Compute Cohen’s d from t-value
+cohen_d_result <- t_to_d(t = 4.25, df_error = df, paired = FALSE)
+
+# Display Cohen's d and its 95% CI
+print(cohen_d_result)
+
+```
